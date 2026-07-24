@@ -1,15 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// firebase_options.dart
-//
-// All values are loaded from .env.json via --dart-define-from-file.
-// Never hard-code real credentials here.
-//
-// Run the app with:
-//   flutter run --dart-define-from-file=.env.json
-//
-// See ENV_SETUP.md for how to get these values.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
