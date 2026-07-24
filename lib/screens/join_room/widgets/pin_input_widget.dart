@@ -31,71 +31,80 @@ class _PinInputWidgetState extends State<PinInputWidget> {
   @override
   void initState() {
     super.initState();
-    // Listen for external controller changes (e.g. _createRandomRoom)
-    widget.controller.addListener(_onControllerChanged);
+    widget.controller.addListener(_rebuild);
+    _focusNode.addListener(_rebuild);
+    // Open keyboard immediately on screen load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
   }
 
-  void _onControllerChanged() => setState(() {});
+  void _rebuild() => setState(() {});
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
+    widget.controller.removeListener(_rebuild);
+    _focusNode.removeListener(_rebuild);
     _focusNode.dispose();
     super.dispose();
   }
-
-  void _onTap() => _focusNode.requestFocus();
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final value = widget.controller.text;
+    final activeIndex = value.length; // slot currently being typed into
 
-    return GestureDetector(
-      onTap: _onTap,
-      child: Container(
-        width: double.infinity,
-        padding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // ── Hidden TextField (captures keyboard input) ─────
-            SizedBox(
-              height: 0.1,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // ── Transparent TextField fills the entire container ────────────
+          // Positioned.fill → full tap area.
+          // Opacity(0) → invisible but still fully functional for hit-testing
+          // and keyboard input. IgnorePointer on the Row above lets taps
+          // fall through to this TextField.
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.0,
               child: TextField(
                 controller: widget.controller,
                 focusNode: _focusNode,
                 maxLength: widget.length,
+                autofocus: true,
                 keyboardType: TextInputType.visiblePassword,
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                      RegExp(r'[a-zA-Z0-9]')),
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
                   UpperCaseTextFormatter(),
                 ],
                 style: const TextStyle(
-                  fontSize: 0.1,
                   color: Colors.transparent,
+                  fontSize: 16,
                 ),
                 cursorColor: Colors.transparent,
                 cursorWidth: 0,
+                // Suppress ALL border variants so the theme's green line
+                // never shows on the outer container
                 decoration: const InputDecoration(
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
                   counterText: '',
                   filled: false,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
                 onChanged: (v) {
-                  setState(() {});
                   widget.onChanged?.call(v);
                   if (v.length == widget.length) {
                     widget.onCompleted(v);
@@ -103,41 +112,66 @@ class _PinInputWidgetState extends State<PinInputWidget> {
                 },
               ),
             ),
+          ),
 
-            // ── Visual slots ────────────────────────────────────
-            Row(
+          // ── Visual PIN slots ────────────────────────────────────────────
+          // IgnorePointer lets taps pass through to the TextField below.
+          IgnorePointer(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(widget.length, (i) {
                 final hasChar = i < value.length;
                 final char = hasChar ? value[i] : null;
+                // Active = the next empty slot while field has focus
+                final isActive = _focusNode.hasFocus &&
+                    i == activeIndex &&
+                    i < widget.length;
                 return _Slot(
                   char: char,
                   isDark: isDark,
+                  isActive: isActive,
                   index: i,
                 );
               }),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ── Slot widget ─────────────────────────────────────────────────────────────
+
 class _Slot extends StatelessWidget {
   final String? char;
   final bool isDark;
+  final bool isActive;
   final int index;
 
   const _Slot({
     required this.char,
     required this.isDark,
+    required this.isActive,
     required this.index,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasChar = char != null;
+
+    // Filled → primary text | Active → lime accent | Inactive → secondary grey
+    final Color color;
+    if (hasChar) {
+      color = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    } else if (isActive) {
+      color = AppColors.accent;
+    } else {
+      color = isDark
+          ? AppColors.textSecondaryDark
+          : AppColors.textSecondaryLight;
+    }
+
     return AnimatedSwitcher(
       duration: 180.ms,
       transitionBuilder: (child, animation) => ScaleTransition(
@@ -146,15 +180,15 @@ class _Slot extends StatelessWidget {
       ),
       child: Text(
         hasChar ? char! : '—',
-        key: ValueKey(hasChar ? '${char}_$index' : 'empty_$index'),
+        key: ValueKey(
+          hasChar
+              ? 'filled_${char}_$index'
+              : isActive
+                  ? 'active_$index'
+                  : 'empty_$index',
+        ),
         style: GoogleFonts.inter(
-          color: hasChar
-              ? (isDark
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textPrimaryLight)
-              : (isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight),
+          color: color,
           fontSize: 22,
           fontWeight: hasChar ? FontWeight.w700 : FontWeight.w400,
           letterSpacing: 0,
@@ -163,6 +197,8 @@ class _Slot extends StatelessWidget {
     );
   }
 }
+
+// ── Formatter ───────────────────────────────────────────────────────────────
 
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
