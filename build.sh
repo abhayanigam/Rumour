@@ -26,6 +26,7 @@ flutter pub get
 # --web-renderer html or canvaskit (default is auto, causing canvaskit download)
 # often 'auto' is fine, but sometimes 'html' is preferred for initial load.
 # Keeping default 'auto' for now.
-flutter build web --release
+echo $SECRET_ENV_JSON > .env.json
+flutter build web --release --dart-define-from-file=.env.json
 
 echo "flutter_build_script: build finished"
