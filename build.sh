@@ -26,7 +26,14 @@ flutter pub get
 # --web-renderer html or canvaskit (default is auto, causing canvaskit download)
 # often 'auto' is fine, but sometimes 'html' is preferred for initial load.
 # Keeping default 'auto' for now.
-echo $SECRET_ENV_JSON > .env.json
+
+if [ -z "$SECRET_ENV_JSON" ]; then
+  echo "Error: SECRET_ENV_JSON is not set in Vercel Environment Variables!"
+  exit 1
+fi
+
+echo "$SECRET_ENV_JSON" > .env.json
+echo "Successfully created .env.json"
 flutter build web --release --dart-define-from-file=.env.json
 
 echo "flutter_build_script: build finished"
