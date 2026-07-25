@@ -8,6 +8,7 @@ class AppColors {
   // ── Brand ───────────────────────────────────────────────────────
   static const Color accent = Color(0xFFC5FF00); // Lime green (matches Figma)
   static const Color accentDark = Color(0xFFADE000); // Pressed / darker lime
+  static const Color splashBackground = Color(0xFF27272A); // Matches rumour.png icon bg
 
   // ── Dark Theme ─────────────────────────────────────────────────
   static const Color backgroundDark = Color(0xFF0A0A0A);

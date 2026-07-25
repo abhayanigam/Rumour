@@ -43,6 +43,18 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/rumour.png
+
+flutter_native_splash:
+  color: "#27272a"
+  image: assets/rumour.png
+  android_12:
+    image: assets/rumour.png
+    color: "#27272a"
+  web: true
+
